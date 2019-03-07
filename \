@@ -1,5 +1,5 @@
 use nalgebra::{DMatrix, Dynamic, Matrix, VecStorage};
-use rand::{distributions::Distribution, distributions::Uniform, seq::SliceRandom, Rng};
+use rand::{seq::SliceRandom, Rng, distributions::Distribution, distributions::Uniform};
 
 type DMatrixi32 = Matrix<i32, Dynamic, Dynamic, VecStorage<i32, Dynamic, Dynamic>>;
 
@@ -11,10 +11,9 @@ fn get_town_rand(size: usize) -> Vec<usize> {
 }
 
 fn get_rand_dist() -> f64 {
-    let between = Uniform::new(0, 10000);
+    let between = Uniform::new(0,10000);
     let mut rng = rand::thread_rng();
-    let value = between.sample(&mut rng);
-    (value / 10000) as f64
+    between.sample(&mut rng)e-4 
 }
 
 fn traveling2(d: DMatrixi32) -> i32 {
@@ -117,17 +116,14 @@ fn traveling(d: DMatrixi32) -> i32 {
         let delta = d[(town[previous], town[next1])] + d[(town[c], town[next2])]
             - d[(town[previous], town[c])]
             - d[(town[next1], town[next2])];
-        if delta < 0 && (-delta as f64 / T).exp() >= get_rand_dist() {
+        if delta < 0 && (-delta as f64 / T).exp() >=  {
             town.swap(c, next1);
             t_dist = t_dist + delta;
-            if delta != 0 {
-                i = 0;
-            }
+            i = 0;
         } else {
             i = i + 1;
+            T = 0.999 * T;
         }
-
-        T = 0.999 * T;
     }
 
     t_dist
@@ -135,6 +131,5 @@ fn traveling(d: DMatrixi32) -> i32 {
 
 fn main() {
     let d = DMatrix::from_row_slice(3, 3, &[6, 6, 6, 6, 6, 6, 6, 6, 6]);
-    println!("{:?}", traveling2(d.clone()));
-    println!("{:?}", traveling(d.clone()));
+    print!("{:?}", traveling2(d))
 }
