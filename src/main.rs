@@ -1,5 +1,6 @@
 use nalgebra::{DMatrix, Dynamic, Matrix, VecStorage};
 use rand::{seq::SliceRandom, Rng};
+use std::num;
 
 type DMatrixi32 = Matrix<i32, Dynamic, Dynamic, VecStorage<i32, Dynamic, Dynamic>>;
 
@@ -63,6 +64,26 @@ fn traveling2(d: DMatrixi32) -> i32 {
     }
 
     t_dist
+}
+
+fn PARtraveling(n: i32, procs: i32) {
+    let x: [i32; n];
+    let y: [i32; n];
+    let mut rng = rand::thread_rng();
+
+    for i in 0..n {
+        x[i] = rng.gen_range(0, 10);
+        y[i] = rng.gen_range(0, 10);
+    }
+
+    let d: DMatrixi32;
+
+    for i in 0..n {
+        for j in 0..n {
+            d[(i,j)] = num::sqrt( i32::pow( x[i] - x[j], 2) + i32::pow( y[i] - y[j], 2));
+        }
+    }
+
 }
 
 fn main() {
