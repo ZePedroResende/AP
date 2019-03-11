@@ -1,9 +1,11 @@
 [package]
 name = "monteCarlo"
 version = "0.1.0"
-authors = ["ZePedroResende <j.p.resende68@gmail.com>"]
+authors = ["ZePedroResende <j.p.resende68@gmail.com>", "a-sac <asergioalvesc@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 rand = "0.6.5"
 nalgebra = "0.17.2"
+gnuplot = "0.0.29"
+num-integer = "0.1"
