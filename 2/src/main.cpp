@@ -1,8 +1,9 @@
 /// \file
 
 #include <iostream>
+#include "sequencial.h"
 
 int main() {
-    std::cout << "Hello, World! factorial" << std::endl;
+    poisson_gs(2, 2);
     return EXIT_SUCCESS;
 }

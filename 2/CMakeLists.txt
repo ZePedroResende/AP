@@ -5,6 +5,7 @@ project(clang-blueprint)
 # Change this value to require other C++ standards (14, 17, etc.)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(include)
 

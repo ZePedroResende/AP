@@ -1,4 +1,4 @@
-#include <memory>
+#include "sequencial.h"
 
 /*
    function [u,ITER]=PoissonGS(N, TOL)
@@ -44,16 +44,37 @@
    u=flipud(u); image(u)
    */
 
-template <class T>
-class Matrice {
-    std::unique_ptr<T[]> array;
-    int m_width;
-    int m_height;
+void poisson_gs(const int n, int tol) {
+    int diff = tol + 1;
+    int iter = 0;
 
-   public:
-    Matrice(int width, int height)
-        : m_width(width), m_height(height), array(std::make_unique<T[]>(width * height)) {}
-    T& operator()(int x, int y) { return array[x + m_width * y]; };
-};
+    Matrice<int> u(n, n);
+    Matrice<int> w(n, n);
 
-void poisson_gs(const int n, int tol) { Matrice<int> u(n, n); }
+    for (int i = 0; i < n; i++) {
+        u(0, i) = 100;
+        w(0, i) = 100;
+        u(i, 0) = 100;
+        w(i, 0) = 100;
+        u(i, n - 1) = 100;
+        w(i, n - 1) = 100;
+        u(n - 1, i) = 0;
+        w(n - 1, i) = 0;
+    }
+
+    for (int i = 1; i < n - 1; i++) {
+        for (int j = 1; j < n - 1; j++) {
+            u(i, j) = 50;
+        }
+    }
+
+    while (diff > tol) {
+        for (int i = 1; i < n - 1; n++)
+            for (int j = 1; j < n - 1; j++)
+                w(i, j) = (w(i - 1, j) + w(i, j - 1) + u(i, j + 1) + u(i + 1, j)) / 4;
+
+        diff =
+    }
+
+    std::cout << u(0, 0);
+}
