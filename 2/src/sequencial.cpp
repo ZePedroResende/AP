@@ -69,12 +69,15 @@ void poisson_gs(const int n, int tol) {
     }
 
     while (diff > tol) {
-        for (int i = 1; i < n - 1; n++)
+        for (int i = 1; i < n - 1; i++)
             for (int j = 1; j < n - 1; j++)
                 w(i, j) = (w(i - 1, j) + w(i, j - 1) + u(i, j + 1) + u(i + 1, j)) / 4;
 
-        diff =
+        diff = (w - u).max();
+        u = w;
+        iter++;
     }
 
-    std::cout << u(0, 0);
+    std::cout << u << std::endl;
+    std::cout << w << std::endl;
 }
