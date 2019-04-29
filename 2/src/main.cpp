@@ -5,7 +5,8 @@
 #include "sequencial.h"
 
 int main() {
-    sequencial::poisson_gs(100);
-    red_black::poisson_gs(100);
+    //    sequencial::poisson_gs(5);
+    std::cout << std::endl;
+    red_black::poisson_gs(5);
     return EXIT_SUCCESS;
 }

@@ -1,14 +1,15 @@
 #include "sequencial.h"
 
 void sequencial::poisson_gs(const int n) {
-    int tol = (1 / n) ^ 2;
-    int diff = tol + 1;
+    double tol = pow((1.0 / n), 2);
+
+    double diff = tol + 1;
     int iter = 0;
 
-    Matrice<int> u(n, n);
-    Matrice<int> w(n, n);
+    Matrice<double> u(n, n);
+    Matrice<double> w(n, n);
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n - 1; i++) {
         u(0, i) = 100;
         w(0, i) = 100;
         u(i, 0) = 100;
@@ -28,13 +29,19 @@ void sequencial::poisson_gs(const int n) {
     while (diff > tol) {
         for (int i = 1; i < n - 1; i++)
             for (int j = 1; j < n - 1; j++)
-                w(i, j) = (w(i - 1, j) + w(i, j - 1) + u(i, j + 1) + u(i + 1, j)) / 4;
+                w(i, j) = (w(i - 1, j) + w(i, j - 1) + u(i, j + 1) + u(i + 1, j)) / 4.0;
 
-        diff = (w - u).max();
+        std::cout << "-----" << iter << "-----\n"
+                  << w << "\n"
+                  << u << "\n-----" << iter << "-----\n"
+                  << std::endl;
+        diff = fabs((w - u).max());
+
         u = w;
+
         iter++;
     }
 
     std::cout << u << std::endl;
-    //    std::cout << iter << std::endl;
+    std::cout << iter << std::endl;
 }
