@@ -3,5 +3,7 @@
 #include <iostream>
 #include "matrice.h"
 
-void poisson_gs(int n, int tol);
+namespace sequencial {
+void poisson_gs(int n);
+}
 #endif  // SEQUENCIAL_H
