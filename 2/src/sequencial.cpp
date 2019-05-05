@@ -31,10 +31,6 @@ void sequencial::poisson_gs(const int n) {
             for (int j = 1; j < n - 1; j++)
                 w(i, j) = (w(i - 1, j) + w(i, j - 1) + u(i, j + 1) + u(i + 1, j)) / 4.0;
 
-        std::cout << "-----" << iter << "-----\n"
-                  << w << "\n"
-                  << u << "\n-----" << iter << "-----\n"
-                  << std::endl;
         diff = fabs((w - u).max());
 
         u = w;
@@ -42,6 +38,6 @@ void sequencial::poisson_gs(const int n) {
         iter++;
     }
 
-    std::cout << u << std::endl;
-    std::cout << iter << std::endl;
+    //    std::cout << u << std::endl;
+    //    std::cout << iter << std::endl;
 }

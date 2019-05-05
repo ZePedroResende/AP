@@ -1,0 +1,164 @@
+#include "block_independent.h"
+
+namespace {
+double black(const int max_i, const int max_j, int rank, const int k, Matrice<double>& u,
+             Matrice<double>& w) {
+    int jstart;
+    double max;
+    double aux;
+    rank -= k;
+    int nb = max_i / k;
+    int b = 2 * nb;
+    int I = b * (rank - (nb * (int)std::floor(rank / nb)));
+    int I_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
+                    ? b * (rank - (nb * (rank / nb)) + 1)
+                    : max_i;
+    int J = (rank / nb) * b;
+    int J_MAX = ((rank / nb) + 1) < nb ? ((rank / nb) + 1) * b : max_j;
+    for (int i = (I + 1); i < I_MAX; i++) {
+        if (i % 2 == 1)
+            jstart = 2 + J;  // odd row
+        else
+            jstart = 1 + J;  // even row
+        for (int j = jstart; j < J_MAX; j += 2) {
+            w(i, j) = (w(i - 1, j) + w(i, j - 1) + u(i, j + 1) + u(i + 1, j)) / 4.0;
+            aux = fabs(w(i, j) - u(i, j));
+            max = max > aux ? max : aux;
+        }
+    }
+    return max;
+}
+
+double red(const int max_i, const int max_j, const int rank, const int k, Matrice<double>& u,
+           Matrice<double>& w) {
+    int jstart;
+    double max;
+    double aux;
+    int nb = max_i / k;
+    int b = 2 * nb;
+    int I = b * (rank - (nb * (int)std::floor(rank / nb)));
+    int I_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
+                    ? b * (rank - (nb * (rank / nb)) + 1)
+                    : max_i;
+    int J = (rank / nb) * b;
+    int J_MAX = ((rank / nb) + 1) < nb ? ((rank / nb) + 1) * b : max_j;
+    for (int i = (I + 1); i < I_MAX; i++) {
+        if (i % 2 == 1)
+            jstart = 1 + J;  // odd row
+        else
+            jstart = 2 + J;  // even row
+        for (int j = jstart; j < J_MAX; j += 2) {
+            w(i, j) = (w(i - 1, j) + w(i, j - 1) + u(i, j + 1) + u(i + 1, j)) / 4.0;
+            aux = fabs(w(i, j) - u(i, j));
+            max = max > aux ? max : aux;
+        }
+    }
+    return max;
+}
+}  // namespace
+
+void init_matrices(Matrice<double>& u, Matrice<double>& w, int n) {
+    for (int i = 0; i < n - 1; i++) {
+        u(0, i) = 100;
+        w(0, i) = 100;
+        u(i, 0) = 100;
+        w(i, 0) = 100;
+        u(i, n - 1) = 100;
+        w(i, n - 1) = 100;
+        u(n - 1, i) = 0;
+        w(n - 1, i) = 0;
+    }
+
+    for (int i = 1; i < n - 1; i++) {
+        for (int j = 1; j < n - 1; j++) {
+            u(i, j) = 50;
+        }
+    }
+}
+
+Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w, Matrice<double>& res, int n,
+                           int rank, int NP) {
+    double tol = pow((1.0 / n), 2);
+    double diff = tol + 1;
+    double a;
+    double b;
+    int iter = 0;
+    // mpi
+    int P = NP / 2;
+    int X = std::floor(sqrt(P));
+    int k = pow(X, 2);
+
+    /*
+    while (diff > tol) {
+        a = red(n - 1, n - 1, rank, k, u, w);
+        b = black(n - 1, n - 1, rank, k, u, w);
+        diff = a > b ? a : b;
+        u = w;
+        iter++;
+    }
+    */
+
+    if (rank == 0) {
+        while (diff > tol) {
+            // receber todos calcular o diff
+            // se nao verificar condicao continuar
+            //    mandar sinal a dizer que acabou
+            // se verificar mandar sinal para transmitir matrix
+            //    agregar matriz no res
+            //    exit
+            diff = a > b ? a : b;
+            u = w;
+            iter++;
+        }
+    } else {
+        if (rank < k) {
+            a = red(n - 1, n - 1, rank, k, u, w);
+            // mandar a para o processo 0
+            //   send w to rank + k
+            //   recieve w rank + k
+            //   atualizar pretos
+            //   se necessario iterar mais partilhar linhas
+            // se nao mandar matrix para o 0
+            //   exit
+        } else {
+            b = black(n - 1, n - 1, rank, k, u, w);
+            // mandar b para o processo 0
+            //   send w to rank + k
+            //   recieve w rank + k
+            //   atualizar pretos
+            //   se necessario iterar mais partilhar linhas
+            // se nao mandar matrix para o 0
+            //   exit
+        }
+        MPI_Send(&a, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+        MPI_Recv(&msg, 1, MPI_INT, rank - 1, 0, MPI_COMM_WORLD, &status);
+    }
+    MPI_Finalize();
+    return res;
+}
+
+void block_independent::poisson_gs(int argc, char* argv[], const int n) {
+    int rank, total;
+    MPI_Status status;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &total);
+    if (total != std::floor(sqrt(total))) {
+        if (rank == 0) {
+            std::cout << "Please run this program with " << std::floor(sqrt(total))
+                      << " MPI processes\n";
+        }
+        MPI_Finalize();
+        exit(1);
+    }
+
+    Matrice<double> u(n, n);
+    Matrice<double> w(n, n);
+    Matrice<double> res(n, n);
+
+    init_matrices(u, w, n);
+    mpi_logic(u, w, res, n, rank, total);
+
+    std::cout << res << std::endl;
+    // std::cout << iter << std::endl;
+}

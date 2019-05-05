@@ -1,8 +1,9 @@
-#include "red_black.h"
+#include "independent.h"
 
 namespace {
-void black(int max_i, int max_j, Matrice<double>& u, Matrice<double>& w) {
+double black(const int max_i, const int max_j, Matrice<double>& u, Matrice<double>& w) {
     int jstart;
+    double max, aux;
     for (int i = 1; i < max_i; i++) {
         if (i % 2 == 1)
             jstart = 2;  // odd row
@@ -10,12 +11,16 @@ void black(int max_i, int max_j, Matrice<double>& u, Matrice<double>& w) {
             jstart = 1;  // even row
         for (int j = jstart; j < max_j; j += 2) {
             w(i, j) = (w(i - 1, j) + w(i, j - 1) + u(i, j + 1) + u(i + 1, j)) / 4.0;
+            aux = fabs(w(i, j) - u(i, j));
+            max = max > aux ? max : aux;
         }
     }
+    return max;
 }
 
-void red(int max_i, int max_j, Matrice<double>& u, Matrice<double>& w) {
+double red(const int max_i, const int max_j, Matrice<double>& u, Matrice<double>& w) {
     int jstart;
+    double max, aux;
     for (int i = 1; i < max_i; i++) {
         if (i % 2 == 1)
             jstart = 1;  // odd row
@@ -23,14 +28,20 @@ void red(int max_i, int max_j, Matrice<double>& u, Matrice<double>& w) {
             jstart = 2;  // even row
         for (int j = jstart; j < max_j; j += 2) {
             w(i, j) = (w(i - 1, j) + w(i, j - 1) + u(i, j + 1) + u(i + 1, j)) / 4.0;
+            aux = fabs(w(i, j) - u(i, j));
+            max = max > aux ? max : aux;
         }
     }
+    return max;
 }
 }  // namespace
 
-void red_black::poisson_gs(const int n) {
+void independent::poisson_gs(const int n) {
+    // std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
     double tol = pow((1.0 / n), 2);
     double diff = tol + 1;
+    double a, b;
     int iter = 0;
 
     Matrice<double> u(n, n);
@@ -55,14 +66,19 @@ void red_black::poisson_gs(const int n) {
     }
 
     while (diff > tol) {
-        red(n - 1, n - 1, u, w);
-        black(n - 1, n - 1, u, w);
-
-        diff = fabs((w - u).max());
+        a = red(n - 1, n - 1, u, w);
+        b = black(n - 1, n - 1, u, w);
+        diff = a > b ? a : b;
         u = w;
         iter++;
     }
+    /*
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
+    std::cout << "Time difference = "
+              << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
+              << std::endl;
+              */
     //    std::cout << u << std::endl;
     //   std::cout << iter << std::endl;
 }

@@ -1,5 +1,7 @@
 #ifndef SEQUENCIAL_H
 #define SEQUENCIAL_H
+#include <cmath>
+#include <cstdlib> /* abs */
 #include <iostream>
 #include "matrice.h"
 

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(clang-blueprint)
+project(rb)
 
 # Require C++11.
 # Change this value to require other C++ standards (14, 17, etc.)
@@ -9,6 +9,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(include)
 
+find_package(MPI REQUIRED) #make it REQUIRED, if you want
+add_definitions(-DOMPI_SKIP_MPICXX)
 # Use globbing to find source files.
 # Any source files added to include/ or src/ will automatically be added to the project.
 file(GLOB_RECURSE INCLUDE_FILES ${CMAKE_SOURCE_DIR}/include/*.h)
@@ -16,7 +18,7 @@ file(GLOB_RECURSE SOURCE_FILES_NO_MAIN ${CMAKE_SOURCE_DIR}/src/*.cpp)
 list(REMOVE_ITEM SOURCE_FILES_NO_MAIN ${CMAKE_SOURCE_DIR}/src/main.cpp)
 set(SOURCE_FILES ${SOURCE_FILES_NO_MAIN} ${CMAKE_SOURCE_DIR}/src/main.cpp)
 
-add_executable(clang-blueprint ${INCLUDE_FILES} ${SOURCE_FILES_NO_MAIN} ${SOURCE_FILES})
+add_executable(rb ${INCLUDE_FILES} ${SOURCE_FILES_NO_MAIN} ${SOURCE_FILES})
 
 # If external libraries are needed, use find_library() and target_link_libraries()
 # to dynamically link them to your executable. Generally, you'll want to install
@@ -24,9 +26,12 @@ add_executable(clang-blueprint ${INCLUDE_FILES} ${SOURCE_FILES_NO_MAIN} ${SOURCE
 # Example:
 #   find_library(LIB_FMT fmt)
 #   target_link_libraries(clang-blueprint ${LIB_FMT})
+target_link_libraries(rb PRIVATE MPI::MPI_C)
+#find_library(LIB_MPI MPI)
+#target_link_libraries(rb ${LIB_MPI})
 
 # Include extra CMake files that are used for testing and linting.
-include(${CMAKE_SOURCE_DIR}/cmake/unit_test.cmake)
+#include(${CMAKE_SOURCE_DIR}/cmake/unit_test.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/clang_tools.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/cppcheck.cmake)
 

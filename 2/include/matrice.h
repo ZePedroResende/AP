@@ -12,15 +12,15 @@ class Matrice {
     int m_width;
     std::vector<T> array;
 
-    Matrice(int height, int width)
+    constexpr Matrice(const int height, const int width)
         : m_height(height), m_width(width), array(std::vector<T>(width * height)) {}
 
-    Matrice(const Matrice<T>& m)
+    constexpr Matrice(const Matrice<T>& m)
         : m_height(m.m_height), m_width(m.m_width), array(std::vector<T>(m.array)) {}
 
     T max() { return *std::max_element(array.begin(), array.end()); }
 
-    T& operator()(int x, int y) { return array[x + m_width * y]; };
+    constexpr T& operator()(const int x, const int y) { return array[x + (m_width * y)]; };
 
     Matrice<T> operator-(Matrice<T> b) {
         Matrice<T> a = *this;
@@ -43,6 +43,18 @@ class Matrice {
             os << std::endl;
         }
         return os;
+    }
+
+    std::vector<T> get_vector(int I, int I_MAX, int J, int J_MAX) {
+        std::vector<T> res;
+
+        for (int i = I; i < I_MAX; i++) {
+            for (int j = J; j < J_MAX; j++) {
+                res.push_back(this(i, j));
+            }
+        }
+
+        return res;
     }
 };
 #endif  // MATRICE_H
