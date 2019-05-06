@@ -1,23 +1,12 @@
 #include "block_independent.h"
 
 namespace {
-double black(const int max_i, const int max_j, int rank, const int k,
-             Matrice<double>& u, Matrice<double>& w) {
-  std::cout << rank << " entrei no black" << std::endl;
+double black(const int I, const int I_MAX, const int J, const int J_MAX,
+             int rank, Matrice<double>& u, Matrice<double>& w) {
   int jstart;
   double max;
   double aux;
-  rank -= k;
-  int nb = max_i / k;
-  int b = 2 * nb;
-  int J = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
-              ? 0
-              : b * (rank - (nb * (int)std::floor(rank / nb))) - 1;
-  int J_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
-                  ? b * (rank - (nb * (rank / nb)) + 1)
-                  : max_i - 1;
-  int I = std::floor(rank / nb) * b - 1 == -1 ? 0 : (rank / nb) * b - 1;
-  int I_MAX = ((rank + 1 / nb)) < nb ? ((rank + 1 / nb)) * b : max_j - 1;
+
   for (int i = (I + 1); i < I_MAX; i++) {
     if (i % 2 == 1)
       jstart = 2 + J;  // odd row
@@ -29,26 +18,14 @@ double black(const int max_i, const int max_j, int rank, const int k,
       max = max > aux ? max : aux;
     }
   }
-  std::cout << rank + k << " sai do black" << std::endl;
   return max;
 }
 
-double red(const int max_i, const int max_j, const int rank, const int k,
-           Matrice<double>& u, Matrice<double>& w) {
-  std::cout << rank << " entrei no red" << std::endl;
+double red(const int I, const int I_MAX, const int J, const int J_MAX,
+           const int rank, Matrice<double>& u, Matrice<double>& w) {
   int jstart;
   double max;
   double aux;
-  int nb = max_i / k;
-  int b = 2 * nb;
-  int J = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
-              ? 0
-              : b * (rank - (nb * (int)std::floor(rank / nb))) - 1;
-  int J_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
-                  ? b * (rank - (nb * (rank / nb)) + 1)
-                  : max_i - 1;
-  int I = std::floor(rank / nb) * b - 1 == -1 ? 0 : (rank / nb) * b - 1;
-  int I_MAX = ((rank / nb) + 1) < nb ? ((rank / nb) + 1) * b : max_j - 1;
   for (int i = (I + 1); i < I_MAX; i++) {
     if (i % 2 == 1)
       jstart = 1 + J;  // odd row
@@ -60,7 +37,6 @@ double red(const int max_i, const int max_j, const int rank, const int k,
       max = max > aux ? max : aux;
     }
   }
-  std::cout << rank << " sai do red" << std::endl;
   return max;
 }
 }  // namespace
@@ -115,7 +91,7 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
 
   if (rank == 0) {
     for (;;) {
-      a = red(n - 1, n - 1, rank, k, u, w);
+      a = red(I, I_MAX, J, J_MAX, rank, u, w);
       MPI_Recv(&msg, 1, MPI_DOUBLE, k, 0, MPI_COMM_WORLD, &status);
       std::cout << "Recebi msg do meu black " << rank << " !" << std::endl;
       a = msg < a ? a : msg;
@@ -127,6 +103,8 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
 
       for (int l = 1; l < k; l++) {
         b = MPI_Recv(&msg, 1, MPI_DOUBLE, l, 0, MPI_COMM_WORLD, &status);
+        std::cout << "Recebi msg do rank " << l << "com o max " << b
+                  << std::endl;
         a = a < b ? b : a;
       }
 
@@ -202,19 +180,21 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
   } else {
     for (;;) {
       if (rank < k) {
-        a = red(n - 1, n - 1, rank, k, u, w);
+        a = red(I, I_MAX, J, J_MAX, rank, u, w);
         MPI_Recv(&msg, 1, MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD, &status);
         std::cout << "Recebi msg do meu black " << rank << " !" << std::endl;
         a = msg < a ? a : msg;
         MPI_Send(&a, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 
+        std::cout << "Enviei para o 0 " << rank << " !" << std::endl;
         v.clear();
         v.resize((I_MAX - I) * (J_MAX - J));
         MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD,
                  &status);
         w.update_black_vector(I, I_MAX, J, J_MAX, v);
         MPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-        std::cout << msg << rank << std::endl;
+        std::cout << "Recebi do black"
+                  << " " << msg << " " << rank << std::endl;
         if (msg) {
           v.clear();
           v.resize((I_MAX - I) * (J_MAX - J));
@@ -263,7 +243,7 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
         v = w.get_vector(I, I_MAX, J, J_MAX);
         MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD);
       } else {
-        a = black(n - 1, n - 1, rank, k, u, w);
+        a = black(I, I_MAX, J, J_MAX, rank, u, w);
         // mandar b para o processo 0
         //   send w to rank + k
         //   recieve w rank + k
