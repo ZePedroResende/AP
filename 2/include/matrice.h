@@ -48,13 +48,72 @@ class Matrice {
     std::vector<T> get_vector(int I, int I_MAX, int J, int J_MAX) {
         std::vector<T> res;
 
+        Matrice<T> a = *this;
         for (int i = I; i < I_MAX; i++) {
             for (int j = J; j < J_MAX; j++) {
-                res.push_back(this(i, j));
+                res.push_back(a(i, j));
             }
         }
 
         return res;
+    }
+
+    bool update_with_vector(int I, int I_MAX, int J, int J_MAX, std::vector<T> in) {
+        Matrice<T> a = *this;
+        int it = 0;
+        for (int i = I; i < I_MAX; i++) {
+            for (int j = J; j < J_MAX; j++) {
+                a(i, j) = in[it];
+                it++;
+            }
+        }
+
+        return in.size() == it;
+    }
+
+    void update_black_vector(int I, int I_MAX, int J, int J_MAX, std::vector<T> in) {
+        int jstart;
+
+        for (int i = (I + 1); i < I_MAX; i++) {
+            if (i % 2 == 1)
+                jstart = 2 + J;  // odd row
+            else
+                jstart = 1 + J;  // even row
+            for (int j = jstart; j < J_MAX; j += 2) {
+                (*this)(i, j) = in[i + (m_width * j)];
+            }
+        }
+    }
+
+    void update_red_vector(int I, int I_MAX, int J, int J_MAX, std::vector<T> in) {
+        int jstart;
+
+        for (int i = (I + 1); i < I_MAX; i++) {
+            if (i % 2 == 1)
+                jstart = 1 + J;  // odd row
+            else
+                jstart = 2 + J;  // even row
+            for (int j = jstart; j < J_MAX; j += 2) {
+                (*this)(i, j) = in[i + (m_width * j)];
+            }
+        }
+    }
+
+    void update_sides(int I, int I_MAX, int J, int J_MAX, int n, std::vector<T> v) {
+        Matrice<T> w = *this;
+
+        if (I != 0) {
+            w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+        }
+        if (I_MAX != n) {
+            w.update_with_vector(I_MAX - 1, I_MAX, J + 1, J_MAX - 1, v);
+        }
+        if (J != 0) {
+            w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+        }
+        if (J_MAX != n) {
+            w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+        }
     }
 };
 #endif  // MATRICE_H

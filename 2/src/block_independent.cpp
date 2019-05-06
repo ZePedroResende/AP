@@ -95,9 +95,9 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w, Matrice<doubl
     int I = b * (rank - (nb * (int)std::floor(rank / nb)));
     int I_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
                     ? b * (rank - (nb * (rank / nb)) + 1)
-                    : max_i;
+                    : n;
     int J = (rank / nb) * b;
-    int J_MAX = ((rank / nb) + 1) < nb ? ((rank / nb) + 1) * b : max_j;
+    int J_MAX = ((rank / nb) + 1) < nb ? ((rank / nb) + 1) * b : n;
     /*
     while (diff > tol) {
         a = red(n - 1, n - 1, rank, k, u, w);
@@ -109,17 +109,96 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w, Matrice<doubl
     */
 
     if (rank == 0) {
-        while (diff > tol) {
-            // receber todos calcular o diff
-            // se nao verificar condicao continuar
-            //    mandar sinal a dizer que acabou
-            // se verificar mandar sinal para transmitir matrix
-            //    agregar matriz no res
-            //    exit
-            diff = a > b ? a : b;
-            u = w;
+        for (;;) {
+            a = red(n - 1, n - 1, rank, k, u, w);
+            // mandar a para o processo 0
+            //   send w to rank + k
+            //   recieve w rank + k
+            //   atualizar pretos
+            //   se necessario iterar mais partilhar linhas
+            // se nao mandar matrix para o 0
+            //   exit
+            MPI_Recv(&msg, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &status);
+            a = msg < a ? a : msg;
+
+            v.clear();
+            v.resize((I_MAX - I) * (J_MAX - J));
+            MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD, &status);
+            w.update_black_vector(I, I_MAX, J, J_MAX, v);
+
+            for (int l = 1; l < k; l++) {
+                b = MPI_Recv(&msg, 1, MPI_DOUBLE, l, 0, MPI_COMM_WORLD, &status);
+                a = a < b ? b : a;
+            }
+
+            diff = a;
+            msg = diff <= tol;
+            MPI_Bcast(&msg, 1, MPI_INT, 0, MPI_COMM_WORLD);
+            if (msg) {
+                for (int l = 1; l < k; l++) {
+                    int I_ = b * (l - (nb * (int)std::floor(l / nb)));
+                    int I_MAX_ = (l - (nb * (int)std::floor(l / nb)) + 1) < nb
+                                     ? b * (l - (nb * (l / nb)) + 1)
+                                     : n;
+                    int J_ = (l / nb) * b;
+                    int J_MAX_ = ((l / nb) + 1) < nb ? ((l / nb) + 1) * b : n;
+
+                    v.clear();
+                    v.resize((I_MAX_ - I_) * (J_MAX_ - J_));
+                    v = w.get_vector(I_, I_MAX_, J_, J_MAX_);
+                    b = MPI_Recv(&v[0], v.size(), MPI_DOUBLE, l, 0, MPI_COMM_WORLD, &status);
+                    w.update_with_vector(I_, I_MAX_, J_, J_MAX_, v);
+                }
+                break;
+            }
+
             iter++;
+
+            if (msg) {
+                v.clear();
+                v.resize((I_MAX - I) * (J_MAX - J));
+                v = w.get_vector(I, I_MAX, J, J_MAX);
+                MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD);
+                break;
+            }
+            if (I != 0) {
+                v = w.get_vector(I + 1, I + 2, J + 1, J_MAX - 1);
+                MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank - nb, 0, MPI_COMM_WORLD);
+                v.clear();
+                v.resize((J_MAX - J - 2));
+                MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank - nb, 0, MPI_COMM_WORLD, &status);
+                w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+            }
+            if (I_MAX != n) {
+                v = w.get_vector(I_MAX - 2, I_MAX - 1, J + 1, J_MAX - 1);
+                MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + nb, 0, MPI_COMM_WORLD);
+                v.clear();
+                v.resize((J_MAX - J - 2));
+                MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank + nb, 0, MPI_COMM_WORLD, &status);
+                w.update_with_vector(I_MAX - 1, I_MAX, J + 1, J_MAX - 1, v);
+            }
+            if (J != 0) {
+                v = w.get_vector(I + 1, I_MAX + 1, J + 1, J + 2);
+                MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD);
+                v.clear();
+                v.resize((I_MAX - I - 2));
+                MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD, &status);
+                w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+            }
+            if (J_MAX != n) {
+                v = w.get_vector(I + 1, I_MAX + 1, J_MAX - 2, J_MAX - 1);
+                MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD);
+                v.clear();
+                v.resize((I_MAX - I - 2));
+                MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD, &status);
+                w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+            }
+            v.clear();
+            v.resize((I_MAX - I) * (J_MAX - J));
+            v = w.get_vector(I, I_MAX, J, J_MAX);
+            MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD);
         }
+
     } else {
         for (;;) {
             if (rank < k) {
@@ -131,45 +210,58 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w, Matrice<doubl
                 //   se necessario iterar mais partilhar linhas
                 // se nao mandar matrix para o 0
                 //   exit
-                MPI_Recv(&msg, 1, sizeof(double), 0, 0, MPI_COMM_WORLD, &status);
+                MPI_Recv(&msg, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &status);
                 a = msg < a ? a : msg;
-                MPI_Send(&a, 1, sizeof(double), 0, 0, MPI_COMM_WORLD);
+                MPI_Send(&a, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 
                 v.clear();
                 v.resize((I_MAX - I) * (J_MAX - J));
-                MPI_Recv(&v[0], v.size(), sizeof(double), rank + k, 0, MPI_COMM_WORLD, &status);
-
+                MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD, &status);
+                w.update_black_vector(I, I_MAX, J, J_MAX, v);
                 MPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
                 if (msg) {
-                    MPI_Send(&a, 1, sizeof(double), 0, 0, MPI_COMM_WORLD);
+                    v.clear();
+                    v.resize((I_MAX - I) * (J_MAX - J));
+                    v = w.get_vector(I, I_MAX, J, J_MAX);
+                    MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD);
                     break;
                 }
                 if (I != 0) {
-                    MPI_Send(&v[0], v.size(), sizeof(double), rank + k, 0, MPI_COMM_WORLD);
+                    v = w.get_vector(I + 1, I + 2, J + 1, J_MAX - 1);
+                    MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank - nb, 0, MPI_COMM_WORLD);
                     v.clear();
-                    v.resize((I_MAX - I) * (J_MAX - J));
-                    MPI_Recv(&v[0], v.size(), sizeof(double), rank + k, 0, MPI_COMM_WORLD, &status);
+                    v.resize((J_MAX - J - 2));
+                    MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank - nb, 0, MPI_COMM_WORLD, &status);
+                    w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
                 }
                 if (I_MAX != n) {
-                    MPI_Send(&v[0], v.size(), sizeof(double), rank + k, 0, MPI_COMM_WORLD);
+                    v = w.get_vector(I_MAX - 2, I_MAX - 1, J + 1, J_MAX - 1);
+                    MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + nb, 0, MPI_COMM_WORLD);
                     v.clear();
-                    v.resize((I_MAX - I) * (J_MAX - J));
-                    MPI_Recv(&v[0], v.size(), sizeof(double), rank + k, 0, MPI_COMM_WORLD, &status);
+                    v.resize((J_MAX - J - 2));
+                    MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank + nb, 0, MPI_COMM_WORLD, &status);
+                    w.update_with_vector(I_MAX - 1, I_MAX, J + 1, J_MAX - 1, v);
                 }
                 if (J != 0) {
-                    MPI_Send(&v[0], v.size(), sizeof(double), rank + k, 0, MPI_COMM_WORLD);
+                    v = w.get_vector(I + 1, I_MAX + 1, J + 1, J + 2);
+                    MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD);
                     v.clear();
-                    v.resize((I_MAX - I) * (J_MAX - J));
-                    MPI_Recv(&v[0], v.size(), sizeof(double), rank + k, 0, MPI_COMM_WORLD, &status);
+                    v.resize((I_MAX - I - 2));
+                    MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD, &status);
+                    w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
                 }
                 if (J_MAX != n) {
-                    MPI_Send(&v[0], v.size(), sizeof(double), rank + k, 0, MPI_COMM_WORLD);
+                    v = w.get_vector(I + 1, I_MAX + 1, J_MAX - 2, J_MAX - 1);
+                    MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD);
                     v.clear();
-                    v.resize((I_MAX - I) * (J_MAX - J));
-                    MPI_Recv(&v[0], v.size(), sizeof(double), rank + k, 0, MPI_COMM_WORLD, &status);
+                    v.resize((I_MAX - I - 2));
+                    MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD, &status);
+                    w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
                 }
+                v.clear();
+                v.resize((I_MAX - I) * (J_MAX - J));
                 v = w.get_vector(I, I_MAX, J, J_MAX);
-                MPI_Send(&v[0], v.size(), sizeof(double), rank + k, 0, MPI_COMM_WORLD);
+                MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD);
             } else {
                 a = black(n - 1, n - 1, rank, k, u, w);
                 // mandar b para o processo 0
@@ -179,16 +271,19 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w, Matrice<doubl
                 //   se necessario iterar mais partilhar linhas
                 // se nao mandar matrix para o 0
                 //   exit
-                MPI_Send(&a, 1, sizeof(double), 0, 0, MPI_COMM_WORLD);
+                MPI_Send(&a, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
                 v = w.get_vector(I, I_MAX, J, J_MAX);
-                MPI_Send(&v[0], v.size(), sizeof(double), rank - k, 0, MPI_COMM_WORLD);
+                MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank - k, 0, MPI_COMM_WORLD);
                 MPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
                 if (msg) {
                     break;
                 }
                 v.clear();
                 v.resize((I_MAX - I) * (J_MAX - J));
-                MPI_Recv(&v[0], v.size(), sizeof(double), rank - k, 0, MPI_COMM_WORLD, &status);
+                MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank - k, 0, MPI_COMM_WORLD, &status);
+                // w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+                w.update_red_vector(I, I_MAX, J, J_MAX, v);
+                w.update_sides(I, I_MAX, J, J_MAX, n, v);
             }
         }
     }
@@ -201,7 +296,7 @@ void block_independent::poisson_gs(int argc, char* argv[], const int n) {
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &total);
-    if (total != std::floor(sqrt(total))) {
+    if (total != pow(std::floor(sqrt(total)), 2)) {
         if (rank == 0) {
             std::cout << "Please run this program with " << std::floor(sqrt(total))
                       << " MPI processes\n";
