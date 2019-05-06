@@ -64,7 +64,7 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
                            Matrice<double>& res, int n, int rank, int NP) {
   double tol = pow((1.0 / n), 2);
   double diff = tol + 1;
-  double a;
+  double a, b;
   int iter = 0;
   // mpi
   int P = NP / 2;
@@ -75,26 +75,22 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
 
   std::vector<double> v;
   int nb = std::floor(sqrt(k));
-  int b = std::floor(n / sqrt(k));
-  int J = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
+  int B = std::floor(n / sqrt(k));
+  int J = B * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
               ? 0
-              : b * (rank - (nb * (int)std::floor(rank / nb))) - 1;
+              : B * (rank - (nb * (int)std::floor(rank / nb))) - 1;
   int J_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
-                  ? b * (rank - (nb * (rank / nb)) + 1)
+                  ? B * (rank - (nb * (rank / nb)) + 1)
                   : n - 1;
   int rank_j = rank < k ? rank : rank - k;
-  int I = std::floor(rank_j / nb) * b - 1 == -1 ? 0 : (rank_j / nb) * b - 1;
-  int I_MAX = ((rank_j / nb) + 1) < nb ? ((rank_j / nb) + 1) * b : n - 1;
-  std::cout << "rank=" << rank << " nb=" << nb << " b=" << b << " I = " << I
-            << " I_MAX=" << I_MAX << " J = " << J << " J_MAX=" << J_MAX
-            << std::endl;
+  int I = std::floor(rank_j / nb) * B - 1 == -1 ? 0 : (rank_j / nb) * B - 1;
+  int I_MAX = ((rank_j / nb) + 1) < nb ? ((rank_j / nb) + 1) * B : n - 1;
 
   if (rank == 0) {
     for (;;) {
       a = red(I, I_MAX, J, J_MAX, rank, u, w);
-      MPI_Recv(&msg, 1, MPI_DOUBLE, k, 0, MPI_COMM_WORLD, &status);
-      std::cout << "Recebi msg do meu black " << rank << " !" << std::endl;
-      a = msg < a ? a : msg;
+      MPI_Recv(&b, 1, MPI_DOUBLE, k, 0, MPI_COMM_WORLD, &status);
+      a = b < a ? a : b;
 
       v.clear();
       v.resize((I_MAX - I) * (J_MAX - J));
@@ -102,32 +98,31 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
       w.update_black_vector(I, I_MAX, J, J_MAX, v);
 
       for (int l = 1; l < k; l++) {
-        b = MPI_Recv(&msg, 1, MPI_DOUBLE, l, 0, MPI_COMM_WORLD, &status);
+        MPI_Recv(&b, 1, MPI_DOUBLE, l, 0, MPI_COMM_WORLD, &status);
         std::cout << "Recebi msg do rank " << l << "com o max " << b
                   << std::endl;
         a = a < b ? b : a;
       }
 
       diff = a;
+      std::cout << "Max " << diff << std::endl;
       msg = diff <= tol;
-      MPI_Bcast(&msg, 1, MPI_INT, 0, MPI_COMM_WORLD);
       if (msg) {
         for (int l = 1; l < k; l++) {
-          int J_ = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
+          int J_ = B * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
                        ? 0
-                       : b * (rank - (nb * (int)std::floor(rank / nb))) - 1;
+                       : B * (rank - (nb * (int)std::floor(rank / nb))) - 1;
           int J_MAX_ = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
-                           ? b * (rank - (nb * (rank / nb)) + 1)
+                           ? B * (rank - (nb * (rank / nb)) + 1)
                            : n - 1;
           int r_j = l < k ? l : l - k;
-          int I_ = std::floor(r_j / nb) * b - 1 == -1 ? 0 : (r_j / nb) * b - 1;
-          int I_MAX_ = ((r_j / nb) + 1) < nb ? ((r_j / nb) + 1) * b : n - 1;
+          int I_ = std::floor(r_j / nb) * B - 1 == -1 ? 0 : (r_j / nb) * B - 1;
+          int I_MAX_ = ((r_j / nb) + 1) < nb ? ((r_j / nb) + 1) * B : n - 1;
 
           v.clear();
           v.resize((I_MAX_ - I_) * (J_MAX_ - J_));
           v = w.get_vector(I_, I_MAX_, J_, J_MAX_);
-          b = MPI_Recv(&v[0], v.size(), MPI_DOUBLE, l, 0, MPI_COMM_WORLD,
-                       &status);
+          MPI_Recv(&v[0], v.size(), MPI_DOUBLE, l, 0, MPI_COMM_WORLD, &status);
           w.update_with_vector(I_, I_MAX_, J_, J_MAX_, v);
         }
         break;
@@ -181,19 +176,18 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
     for (;;) {
       if (rank < k) {
         a = red(I, I_MAX, J, J_MAX, rank, u, w);
-        MPI_Recv(&msg, 1, MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD, &status);
-        std::cout << "Recebi msg do meu black " << rank << " !" << std::endl;
-        a = msg < a ? a : msg;
+        MPI_Recv(&b, 1, MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD, &status);
+        a = b < a ? a : b;
         MPI_Send(&a, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 
-        std::cout << "Enviei para o 0 " << rank << " !" << std::endl;
         v.clear();
         v.resize((I_MAX - I) * (J_MAX - J));
         MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD,
                  &status);
         w.update_black_vector(I, I_MAX, J, J_MAX, v);
-        MPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
-        std::cout << "Recebi do black"
+      //  MPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+      MPI_Bcast(&msg, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        std::cout << "Recebi do 0 "
                   << " " << msg << " " << rank << std::endl;
         if (msg) {
           v.clear();
@@ -254,7 +248,8 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
         MPI_Send(&a, 1, MPI_DOUBLE, rank - k, 0, MPI_COMM_WORLD);
         v = w.get_vector(I, I_MAX, J, J_MAX);
         MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank - k, 0, MPI_COMM_WORLD);
-        MPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+      //  MPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+      MPI_Bcast(&msg, 1, MPI_INT, 0, MPI_COMM_WORLD);
         if (msg) {
           break;
         }
