@@ -10,14 +10,14 @@ double black(const int max_i, const int max_j, int rank, const int k,
   rank -= k;
   int nb = max_i / k;
   int b = 2 * nb;
-  int I = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
+  int J = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
               ? 0
               : b * (rank - (nb * (int)std::floor(rank / nb))) - 1;
-  int I_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
+  int J_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
                   ? b * (rank - (nb * (rank / nb)) + 1)
                   : max_i - 1;
-  int J = std::floor(rank / nb) * b - 1 == -1 ? 0 : (rank / nb) * b - 1;
-  int J_MAX = ((rank + 1 / nb)) < nb ? ((rank + 1 / nb)) * b : max_j - 1;
+  int I = std::floor(rank / nb) * b - 1 == -1 ? 0 : (rank / nb) * b - 1;
+  int I_MAX = ((rank + 1 / nb)) < nb ? ((rank + 1 / nb)) * b : max_j - 1;
   for (int i = (I + 1); i < I_MAX; i++) {
     if (i % 2 == 1)
       jstart = 2 + J;  // odd row
@@ -41,14 +41,14 @@ double red(const int max_i, const int max_j, const int rank, const int k,
   double aux;
   int nb = max_i / k;
   int b = 2 * nb;
-  int I = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
+  int J = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
               ? 0
               : b * (rank - (nb * (int)std::floor(rank / nb))) - 1;
-  int I_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
+  int J_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
                   ? b * (rank - (nb * (rank / nb)) + 1)
                   : max_i - 1;
-  int J = std::floor(rank / nb) * b - 1 == -1 ? 0 : (rank / nb) * b - 1;
-  int J_MAX = ((rank / nb) + 1) < nb ? ((rank / nb) + 1) * b : max_j - 1;
+  int I = std::floor(rank / nb) * b - 1 == -1 ? 0 : (rank / nb) * b - 1;
+  int I_MAX = ((rank / nb) + 1) < nb ? ((rank / nb) + 1) * b : max_j - 1;
   for (int i = (I + 1); i < I_MAX; i++) {
     if (i % 2 == 1)
       jstart = 1 + J;  // odd row
@@ -100,15 +100,15 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
   std::vector<double> v;
   int nb = std::floor(sqrt(k));
   int b = std::floor(n / sqrt(k));
-  int I = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
+  int J = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
               ? 0
               : b * (rank - (nb * (int)std::floor(rank / nb))) - 1;
-  int I_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
+  int J_MAX = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
                   ? b * (rank - (nb * (rank / nb)) + 1)
                   : n - 1;
   int rank_j = rank < k ? rank : rank - k;
-  int J = std::floor(rank_j / nb) * b - 1 == -1 ? 0 : (rank_j / nb) * b - 1;
-  int J_MAX = ((rank_j / nb) + 1) < nb ? ((rank_j / nb) + 1) * b : n - 1;
+  int I = std::floor(rank_j / nb) * b - 1 == -1 ? 0 : (rank_j / nb) * b - 1;
+  int I_MAX = ((rank_j / nb) + 1) < nb ? ((rank_j / nb) + 1) * b : n - 1;
   std::cout << "rank=" << rank << " nb=" << nb << " b=" << b << " I = " << I
             << " I_MAX=" << I_MAX << " J = " << J << " J_MAX=" << J_MAX
             << std::endl;
@@ -135,15 +135,15 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
       MPI_Bcast(&msg, 1, MPI_INT, 0, MPI_COMM_WORLD);
       if (msg) {
         for (int l = 1; l < k; l++) {
-          int I_ = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
+          int J_ = b * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
                        ? 0
                        : b * (rank - (nb * (int)std::floor(rank / nb))) - 1;
-          int I_MAX_ = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
+          int J_MAX_ = (rank - (nb * (int)std::floor(rank / nb)) + 1) < nb
                            ? b * (rank - (nb * (rank / nb)) + 1)
                            : n - 1;
           int r_j = l < k ? l : l - k;
-          int J_ = std::floor(r_j / nb) * b - 1 == -1 ? 0 : (r_j / nb) * b - 1;
-          int J_MAX_ = ((r_j / nb) + 1) < nb ? ((r_j / nb) + 1) * b : n - 1;
+          int I_ = std::floor(r_j / nb) * b - 1 == -1 ? 0 : (r_j / nb) * b - 1;
+          int I_MAX_ = ((r_j / nb) + 1) < nb ? ((r_j / nb) + 1) * b : n - 1;
 
           v.clear();
           v.resize((I_MAX_ - I_) * (J_MAX_ - J_));
