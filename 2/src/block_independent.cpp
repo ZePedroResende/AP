@@ -107,6 +107,7 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
       diff = a;
       std::cout << "Max " << diff << std::endl;
       msg = diff <= tol;
+      MPI_Bcast(&msg, 1, MPI_INT, 0, MPI_COMM_WORLD);
       if (msg) {
         for (int l = 1; l < k; l++) {
           int J_ = B * (rank - (nb * (int)std::floor(rank / nb))) - 1 == -1
@@ -139,7 +140,7 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
                  &status);
         w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
       }
-      if (I_MAX != n) {
+      if (I_MAX != n-1) {
         v = w.get_vector(I_MAX - 2, I_MAX - 1, J + 1, J_MAX - 1);
         MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + nb, 0, MPI_COMM_WORLD);
         v.clear();
@@ -157,7 +158,7 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
                  &status);
         w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
       }
-      if (J_MAX != n) {
+      if (J_MAX != n-1) {
         v = w.get_vector(I + 1, I_MAX + 1, J_MAX - 2, J_MAX - 1);
         MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD);
         v.clear();
@@ -205,7 +206,7 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
                    &status);
           w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
         }
-        if (I_MAX != n) {
+        if (I_MAX != n-1) {
           v = w.get_vector(I_MAX - 2, I_MAX - 1, J + 1, J_MAX - 1);
           MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + nb, 0, MPI_COMM_WORLD);
           v.clear();
@@ -223,7 +224,7 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
                    &status);
           w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
         }
-        if (J_MAX != n) {
+        if (J_MAX != n-1) {
           v = w.get_vector(I + 1, I_MAX + 1, J_MAX - 2, J_MAX - 1);
           MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + 1, 0, MPI_COMM_WORLD);
           v.clear();
