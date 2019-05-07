@@ -8,6 +8,6 @@
 #include "matrice.h"
 
 namespace block_independent {
-void poisson_gs(int argc, char* argv[], const int n);
+void poisson_gs(const int n);
 }
 #endif  // BLOCK_INDEPENDENT_H
