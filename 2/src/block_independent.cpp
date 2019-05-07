@@ -232,11 +232,17 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
         }
         v.clear();
         v.resize((I_MAX - I + 1) * (J_MAX - J + 1));
-        MPI_Recv(&v[0], (I_MAX - I) * (J_MAX - J), MPI_DOUBLE, rank - k, 0,
+        MPI_Recv(&v[0], (I_MAX - I + 1) * (J_MAX - J + 1), MPI_DOUBLE, rank - k, 0,
                  MPI_COMM_WORLD, &status);
 
         // w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+        if(I==5 && I_MAX==8 && J==2 && J_MAX==6)
+          std::cout << "antes mpi logic \n" << w
+                  << " antes mpi logic\n";
         w.update_red_vector(I, I_MAX, J, J_MAX, v);
+        if(I==5 && I_MAX==8 && J==2 && J_MAX==6)
+          std::cout << "depois mpi logic \n" << w
+                  << "depois mpi logic\n";
         w.update_sides(I, I_MAX, J, J_MAX, n, v);
         u = w;
       }
