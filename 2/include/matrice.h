@@ -54,7 +54,7 @@ class Matrice {
   std::vector<T> get_vector(int I, int I_MAX, int J, int J_MAX) {
     std::vector<T> res;
 
-    Matrice<T> &a = *this;
+    Matrice<T>& a = *this;
     for (int i = I; i < I_MAX; i++) {
       for (int j = J; j < J_MAX; j++) {
         res.push_back(a(i, j));
@@ -65,13 +65,19 @@ class Matrice {
   }
 
   bool update_with_vector(int I, int I_MAX, int J, int J_MAX,
-                          std::vector<T>& in, int rank) {
-    Matrice<T> &a = *this;
+                          std::vector<T>& in) {
+    Matrice<T>& a = *this;
     int it = 0;
     for (int i = I; i < I_MAX; i++) {
       for (int j = J; j < J_MAX; j++) {
+        if (I == 2 && j == 3) {
+          /*
+          std::cout << i << " " << j << " " << it << " " << a(i, j) << " "
+                    << in[it] << "\n\n";
+                    */
+        }
+        // std::cout << I << I_MAX << J << J_MAX << it << std::endl;
         a(i, j) = in[it];
-        //std::cout << a << a(i, j) << "\n" << in[it] << "\n\n\n\n\n\n\n\n\n";
         it++;
       }
     }
@@ -82,7 +88,7 @@ class Matrice {
   void update_black_vector(int I, int I_MAX, int J, int J_MAX,
                            std::vector<double>& in) {
     int jstart;
-    Matrice<T> &w = *this;
+    Matrice<T>& w = *this;
     for (int i = (I + 1), i_ = 0; i < I_MAX; i++, i_++) {
       if (i % 2 == 1)
         jstart = 2;  // odd row
@@ -97,7 +103,7 @@ class Matrice {
   void update_red_vector(int I, int I_MAX, int J, int J_MAX,
                          std::vector<double>& in) {
     int jstart;
-    Matrice<T> &w = *this;
+    Matrice<T>& w = *this;
     for (int i = (I + 1), i_ = 0; i < I_MAX; i++, i_++) {
       if (i % 2 == 1)
         jstart = 1;  // odd row
@@ -111,19 +117,19 @@ class Matrice {
 
   void update_sides(int I, int I_MAX, int J, int J_MAX, int n,
                     std::vector<double>& v) {
-    Matrice<T> &w = *this;
+    Matrice<T>& w = *this;
 
     if (I != 0) {
-      w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+      w.update_with_vector(I, I + 1, J + 1, J_MAX, v);
     }
     if (I_MAX != n) {
-      w.update_with_vector(I_MAX - 1, I_MAX, J + 1, J_MAX - 1, v);
+      w.update_with_vector(I_MAX - 1, I_MAX, J + 1, J_MAX, v);
     }
     if (J != 0) {
-      w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+      w.update_with_vector(I + 1, I_MAX, J, J + 1, v);
     }
     if (J_MAX != n) {
-      w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
+      w.update_with_vector(I + 1, I_MAX, J_MAX - 1, J_MAX, v);
     }
   }
 };
