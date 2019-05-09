@@ -70,9 +70,8 @@ class Matrice {
       int it = 0;
       for (int i = I; i < I_MAX; i++) {
         for (int j = J; j < J_MAX; j++) {
-          if(in[it])
-            a(i, j) = in[it];
-            it++;
+          if(in[it]) a(i, j) = in[it];
+          it++;
         }
       }
 

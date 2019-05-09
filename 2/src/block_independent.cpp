@@ -78,32 +78,27 @@ void comunicate_collumns(Matrice<double>& w, int I, int I_MAX, int J, int J_MAX,
 void update_collumns(Matrice<double>& w, int I, int I_MAX, int J, int J_MAX,
                      int rank, int n, int nb) {
   int i, i_max, j, j_max;
-  int i_, i_max_, j_, j_max_;
   i = I == 0 ? I : I + 1;
   i_max = I_MAX == n - 1 ? I_MAX : I_MAX - 1;
   j = J == 0 ? J : J + 1;
   j_max = J_MAX == n - 1 ? J_MAX : J_MAX - 1;
 
-  i_ = I == 0 ? I : I + 1;
-  i_max_ = I_MAX == n - 1 ? I_MAX : I_MAX - 1;
-  j_ = J == 0 ? J : J + 1;
-  j_max_ = J_MAX == n - 1 ? J_MAX : J_MAX - 1;
 
   if (I != 0) {
-    comunicate_collumns(w, I + 1, I + 2, j, j_max + 1, I, I + 1, j_, j_max_ + 1,
-                        rank - nb, j_max_ - j_ + 1);
+    comunicate_collumns(w, I + 1, I + 2, j, j_max + 1, I, I + 1, j, j_max + 1,
+                        rank - nb, j_max - j + 1);
   }
   if (I_MAX != n - 1) {
-    comunicate_collumns(w, I_MAX -1 , I_MAX , j, j_max + 1, I_MAX , I_MAX + 1, j_,
-                        j_max_ + 1, rank + nb, j_max_ - j_ + 1);
+    comunicate_collumns(w, I_MAX -1 , I_MAX , j, j_max + 1, I_MAX , I_MAX + 1, j,
+                        j_max + 1, rank + nb, j_max - j + 1);
   }
   if (J != 0) {
-    comunicate_collumns(w, i, i_max + 1, J + 1, J + 2, i_, i_max_  + 1, J, J + 1,
-                        rank - 1, i_max_ - i_ + 1);
+    comunicate_collumns(w, i, i_max + 1, J + 1, J + 2, i, i_max  + 1, J, J + 1,
+                        rank - 1, i_max - i + 1);
   }
   if (J_MAX != n - 1) {
-    comunicate_collumns(w, i, i_max + 1, J_MAX -1, J_MAX , i_, i_max_ + 1,
-                        J_MAX , J_MAX+1, rank + 1, i_max_ - i_ + 1);
+    comunicate_collumns(w, i, i_max + 1, J_MAX -1, J_MAX , i, i_max + 1,
+                        J_MAX , J_MAX+1, rank + 1, i_max - i + 1);
   }
 }
 
