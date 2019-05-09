@@ -90,20 +90,20 @@ void update_collumns(Matrice<double>& w, int I, int I_MAX, int J, int J_MAX,
   j_max_ = J_MAX == n - 1 ? J_MAX : J_MAX - 1;
 
   if (I != 0) {
-    comunicate_collumns(w, I + 1, I + 2, j, j_max, I, I + 1, j_, j_max_,
+    comunicate_collumns(w, I + 1, I + 2, j, j_max + 1, I, I + 1, j_, j_max_ + 1,
                         rank - nb, j_max_ - j_ + 1);
   }
   if (I_MAX != n - 1) {
-    comunicate_collumns(w, I_MAX - 2, I_MAX - 1, j, j_max, I_MAX - 1, I_MAX, j_,
-                        j_max_, rank + nb, j_max_ - j_ + 1);
+    comunicate_collumns(w, I_MAX -1 , I_MAX , j, j_max + 1, I_MAX , I_MAX + 1, j_,
+                        j_max_ + 1, rank + nb, j_max_ - j_ + 1);
   }
   if (J != 0) {
-    comunicate_collumns(w, i, i_max, J + 1, J + 2, i_, i_max_, J, J + 1,
+    comunicate_collumns(w, i, i_max + 1, J + 1, J + 2, i_, i_max_  + 1, J, J + 1,
                         rank - 1, i_max_ - i_ + 1);
   }
   if (J_MAX != n - 1) {
-    comunicate_collumns(w, i, i_max, J_MAX - 2, J_MAX - 1, i_, i_max_,
-                        J_MAX - 1, J_MAX, rank + 1, i_max_ - i_ + 1);
+    comunicate_collumns(w, i, i_max + 1, J_MAX -1, J_MAX , i_, i_max_ + 1,
+                        J_MAX , J_MAX+1, rank + 1, i_max_ - i_ + 1);
   }
 }
 
@@ -140,8 +140,8 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
       a = b < a ? a : b;
 
       v.clear();
-      v.resize((I_MAX - I + 1) * (J_MAX - J + 1));
-      MPI_Recv(&v[0], (I_MAX - I) * (J_MAX - J), MPI_DOUBLE, k, 0,
+      v.resize((I_MAX - I ) * (J_MAX - J ));
+      MPI_Recv(&v[0], v.size(), MPI_DOUBLE, k, 0,
                MPI_COMM_WORLD, &status);
 
       w.update_black_vector(I, I_MAX, J, J_MAX, v);
@@ -169,32 +169,21 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
           v.clear();
           v.resize((I_MAX - I + 1) * (J_MAX - J + 1));
           MPI_Recv(&v[0], v.size(), MPI_DOUBLE, l, 0, MPI_COMM_WORLD, &status);
-
-          std::cout << l << "\n";
-          for (int _i = 0; _i < (I_MAX - I + 1); _i++) {
-            for (int _j = 0; _j < (J_MAX - J + 1); _j++) {
-              std::cout << v[_j + ((J_MAX - J + 1) * _i)] << " ";
-            }
-            std::cout << "\n";
-          }
-          std::cout << "\n";
-          w.update_with_vector(I_, I_MAX_, J_, J_MAX_, v);
+          w.update_with_vector_agregate(I_, I_MAX_ , J_, J_MAX_ , v);
         }
         break;
       }
 
       iter++;
-      // AQUI
       update_collumns(w, I, I_MAX, J, J_MAX, rank, n, nb);
-      v.clear();
-      v.resize((I_MAX - I + 1) * (J_MAX - J + 1));
-      v = w.get_vector(I, I_MAX, J, J_MAX);
+
+      v = w.get_vector(I, I_MAX+1, J, J_MAX+1);
       MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD);
       u = w;
     }
 
   } else {
-    for (;;) {
+    for (int itt=0;;itt++) {
       if (rank < k) {
         a = red(I, I_MAX, J, J_MAX, rank, u, w);
         MPI_Recv(&b, 1, MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD, &status);
@@ -202,12 +191,11 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
         MPI_Send(&a, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
 
         v.clear();
-        v.resize((I_MAX - I + 1) * (J_MAX - J + 1));
-        MPI_Recv(&v[0], (I_MAX - I) * (J_MAX - J), MPI_DOUBLE, rank + k, 0,
+        v.resize((I_MAX - I ) * (J_MAX - J ));
+        MPI_Recv(&v[0], v.size(), MPI_DOUBLE, rank + k, 0,
                  MPI_COMM_WORLD, &status);
 
         w.update_black_vector(I, I_MAX, J, J_MAX, v);
-        //  MPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
         MPI_Bcast(&msg, 1, MPI_INT, 0, MPI_COMM_WORLD);
         if (msg) {
           v = w.get_vector(I, I_MAX, J, J_MAX);
@@ -215,8 +203,9 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
           break;
         }
         update_collumns(w, I, I_MAX, J, J_MAX, rank, n, nb);
-        v = w.get_vector(I, I_MAX, J, J_MAX);
+        v = w.get_vector(I, I_MAX+1, J, J_MAX+1);
         MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank + k, 0, MPI_COMM_WORLD);
+
 
         u = w;
       } else {
@@ -225,7 +214,6 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
         MPI_Send(&a, 1, MPI_DOUBLE, rank - k, 0, MPI_COMM_WORLD);
         v = w.get_vector(I, I_MAX, J, J_MAX);
         MPI_Send(&v[0], v.size(), MPI_DOUBLE, rank - k, 0, MPI_COMM_WORLD);
-        //  MPI_Recv(&msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
         MPI_Bcast(&msg, 1, MPI_INT, 0, MPI_COMM_WORLD);
         if (msg) {
           break;
@@ -235,23 +223,14 @@ Matrice<double>& mpi_logic(Matrice<double>& u, Matrice<double>& w,
         MPI_Recv(&v[0], (I_MAX - I + 1) * (J_MAX - J + 1), MPI_DOUBLE, rank - k,
                  0, MPI_COMM_WORLD, &status);
 
-        /*
-        // w.update_with_vector(I, I + 1, J + 1, J_MAX - 1, v);
-        if(I==5 && I_MAX==8 && J==2 && J_MAX==6)
-          std::cout << "antes mpi logic \n" << w
-                  << " antes mpi logic\n";
-        w.update_red_vector(I, I_MAX, J, J_MAX, v);
-        if(I==5 && I_MAX==8 && J==2 && J_MAX==6)
-          std::cout << "depois mpi logic \n" << w
-                  << "depois mpi logic\n";
-                  */
-        w.update_sides(I, I_MAX, J, J_MAX, n, v);
+        w.replace(I,I_MAX+1, J, J_MAX +1, v);
         u = w;
       }
     }
   }
   if (rank == 0) {
-    // std::cout << w << std::endl;
+     std::cout << iter << "\n";
+     std::cout << w << std::endl;
   }
   return w;
 }
